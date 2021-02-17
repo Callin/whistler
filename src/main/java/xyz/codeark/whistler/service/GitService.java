@@ -25,10 +25,14 @@ import java.util.stream.Stream;
 @Slf4j
 @Service
 public class GitService {
-    public static final String GIT_REPO = "Git_repositories";
-    public static final String GRADLE_PROJECT = "Maven_modules";
     private static final String GRADLE_FILE = "build.gradle";
     private static final String GIT_DIRECTORY = ".git";
+
+    public static void main(String[] args) {
+        checkoutBranch(discoverRepositories("/home/dragos/dev/projects/", 1)
+                        .stream().filter(dir -> dir.getName().equals("whistler")).findFirst().get(),
+                "testTwo");
+    }
 
     public static void checkoutBranch(Directory directory, String branchName) {
         if (branchExistsLocally(directory, branchName)) {
@@ -61,6 +65,8 @@ public class GitService {
             log.warn("The branch does not exist locally or remotely");
             throw new WhistlerRestException(RestConstants.BRANCH_DOES_NOT_EXIST, HttpStatus.BAD_REQUEST);
         }
+
+        pullRebase(directory, branchName);
     }
 
     public static void pullRebase(Directory directory, String branchName) {
