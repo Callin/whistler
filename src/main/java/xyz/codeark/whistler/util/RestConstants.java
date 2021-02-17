@@ -45,6 +45,10 @@ public class RestConstants {
     public static final String ERROR_FETCHING_GITAPI_EXCEPTION = "Error while fetching remote branches. GIT API exception.";
     public static final String ERROR_WHILE_STASHING_CHANGES = "Error while stashing the changes";
     public static final String ERROR_WHILE_CHECKING_BRANCH_STATUS = "Error while checking the status";
+    public static final String ERROR_WHILE_CHECKING_REMOTE_BRANCH = "Error while checking if remote branch exists";
+    public static final String ERROR_WHILE_CHECKING_BRANCH_EXISTS = "Error while checking if branch exists locally";
+    public static final String ERROR_WHILE_CHECKING_OUT_BRANCH = "Error while checking out local branch";
+    public static final String BRANCH_DOES_NOT_EXIST = "The branch does not exist locally or remotely";
     public static final String ERROR_WHILE_GETTING_THE_TRANSPORT_PROTOCOL = "Error while getting the transport protocol";
     public static final String NO_SUPPORTED_TRANSPORT_PROTOCOL_FOUND = "No supported transport protocol found";
 }
