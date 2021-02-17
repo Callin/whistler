@@ -1,6 +1,7 @@
 package xyz.codeark.whistler.service;
 
 import lombok.extern.slf4j.Slf4j;
+import org.eclipse.jgit.api.CreateBranchCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.ListBranchCommand;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -29,17 +30,10 @@ public class GitService {
     private static final String GRADLE_FILE = "build.gradle";
     private static final String GIT_DIRECTORY = ".git";
 
-
-    public static void main(String[] args) {
-        checkoutBranch(discoverRepositories("/home/dragos/dev/projects/", 1)
-                        .stream().filter(dir -> dir.getName().equals("whistler")).findFirst().get(),
-                "master");
-
-    }
-
     public static void checkoutBranch(Directory directory, String branchName) {
         if (branchExistsLocally(directory, branchName)) {
             try {
+                log.info("Checking out local branch={} for repo={}", branchName, directory.getName());
                 Git.open(new File(directory.getPath()))
                         .checkout()
                         .setCreateBranch(false)
@@ -51,10 +45,13 @@ public class GitService {
             }
         } else if (branchExistsRemotely(directory, branchName)) {
             try {
+                log.info("Checking out remote branch={} for repo={}", branchName, directory.getName());
                 Git.open(new File(directory.getPath()))
                         .checkout()
-                        .setCreateBranch(false)
+                        .setCreateBranch(true)
                         .setName(branchName)
+                        .setUpstreamMode(CreateBranchCommand.SetupUpstreamMode.TRACK)
+                        .setStartPoint("origin/" + branchName)
                         .call();
             } catch (GitAPIException | IOException e) {
                 log.error("Something went wrong while checking out the branch={} for the repository={}", branchName, directory.getName(), e);
@@ -63,6 +60,20 @@ public class GitService {
         } else {
             log.warn("The branch does not exist locally or remotely");
             throw new WhistlerRestException(RestConstants.BRANCH_DOES_NOT_EXIST, HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    public static void pullRebase(Directory directory, String branchName) {
+        try {
+            log.info("Rebasing branch={} for repo={}", branchName, directory.getName());
+            Git.open(new File(directory.getPath()))
+                    .pull()
+                    .setRemoteBranchName(branchName)
+                    .setRebase(true)
+                    .call();
+        } catch (GitAPIException | IOException e) {
+            log.error("Something went wrong while rebasing the branch={} for the repository={}", branchName, directory.getName(), e);
+            throw new WhistlerRestException(RestConstants.ERROR_WHILE_REBASING_BRANCH, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -90,7 +101,7 @@ public class GitService {
                     .stream()
                     .map(Ref::getName)
                     .collect(Collectors.toList())
-                    .contains("refs/heads/" + branchName);
+                    .contains("refs/remotes/origin/" + branchName);
         } catch (GitAPIException | IOException e) {
             log.error("Something went wrong while checking if the branch={} exists remotely for the repository={}", branchName, directory.getName(), e);
             throw new WhistlerRestException(RestConstants.ERROR_WHILE_CHECKING_BRANCH_EXISTS, HttpStatus.INTERNAL_SERVER_ERROR);
