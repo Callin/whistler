@@ -48,6 +48,8 @@ public class RestConstants {
     public static final String ERROR_WHILE_CHECKING_REMOTE_BRANCH = "Error while checking if remote branch exists";
     public static final String ERROR_WHILE_CHECKING_BRANCH_EXISTS = "Error while checking if branch exists locally";
     public static final String ERROR_WHILE_CHECKING_OUT_BRANCH = "Error while checking out local branch";
+    public static final String ERROR_WHILE_GETTING_LOCAL_BRANCHES = "Error while getting local branches";
+    public static final String ERROR_WHILE_GETTING_REMOTE_BRANCHES = "Error while getting remote branches";
     public static final String ERROR_WHILE_REBASING_BRANCH = "Error while rebasing branch";
     public static final String BRANCH_DOES_NOT_EXIST = "The branch does not exist locally or remotely";
     public static final String ERROR_WHILE_GETTING_THE_TRANSPORT_PROTOCOL = "Error while getting the transport protocol";

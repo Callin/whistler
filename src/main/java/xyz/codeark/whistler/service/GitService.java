@@ -5,6 +5,7 @@ import org.eclipse.jgit.api.CreateBranchCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.ListBranchCommand;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.lib.BranchTrackingStatus;
 import org.eclipse.jgit.lib.Ref;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -28,10 +29,33 @@ public class GitService {
     private static final String GRADLE_FILE = "build.gradle";
     private static final String GIT_DIRECTORY = ".git";
 
-    public static void main(String[] args) {
-        checkoutBranch(discoverRepositories("/home/dragos/dev/projects/", 1)
-                        .stream().filter(dir -> dir.getName().equals("whistler")).findFirst().get(),
-                "testTwo");
+    public static List<String> getLocalBranches(Directory directory) {
+        try {
+            return Git.open(new File(directory.getPath()))
+                    .branchList()
+                    .call()
+                    .stream()
+                    .map(branch -> branch.getName().substring(11))
+                    .collect(Collectors.toList());
+        } catch (GitAPIException | IOException e) {
+            log.error("Something went wrong while getting the local branches for the repository={}", directory.getName(), e);
+            throw new WhistlerRestException(RestConstants.ERROR_WHILE_GETTING_LOCAL_BRANCHES, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    public static List<String> getRemoteBranches(Directory directory) {
+        try {
+            return Git.open(new File(directory.getPath()))
+                    .branchList()
+                    .setListMode(ListBranchCommand.ListMode.REMOTE)
+                    .call()
+                    .stream()
+                    .map(branch -> branch.getName().substring(20))
+                    .collect(Collectors.toList());
+        } catch (GitAPIException | IOException e) {
+            log.error("Something went wrong while getting the local branches for the repository={}", directory.getName(), e);
+            throw new WhistlerRestException(RestConstants.ERROR_WHILE_GETTING_LOCAL_BRANCHES, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     public static void checkoutBranch(Directory directory, String branchName) {
@@ -98,7 +122,7 @@ public class GitService {
         }
     }
 
-    private static Boolean branchExistsRemotely(Directory directory, String branchName) {
+    public static Boolean branchExistsRemotely(Directory directory, String branchName) {
         try {
             return Git.open(new File(directory.getPath()))
                     .branchList()
@@ -108,6 +132,19 @@ public class GitService {
                     .map(Ref::getName)
                     .collect(Collectors.toList())
                     .contains("refs/remotes/origin/" + branchName);
+        } catch (GitAPIException | IOException e) {
+            log.error("Something went wrong while checking if the branch={} exists remotely for the repository={}", branchName, directory.getName(), e);
+            throw new WhistlerRestException(RestConstants.ERROR_WHILE_CHECKING_BRANCH_EXISTS, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    public static Boolean isBranchUpToDate(Directory directory, String branchName) {
+        try {
+
+            Git git = Git.open(new File(directory.getPath()));
+            git.fetch().call();
+            BranchTrackingStatus branchTrackingStatus = BranchTrackingStatus.of(git.getRepository(), branchName);
+            return branchTrackingStatus.getBehindCount() == 0;
         } catch (GitAPIException | IOException e) {
             log.error("Something went wrong while checking if the branch={} exists remotely for the repository={}", branchName, directory.getName(), e);
             throw new WhistlerRestException(RestConstants.ERROR_WHILE_CHECKING_BRANCH_EXISTS, HttpStatus.INTERNAL_SERVER_ERROR);
@@ -130,6 +167,8 @@ public class GitService {
                         directory.setIsGitRepository(true);
                         try {
                             directory.setBranchName(Git.open(new File(filePath.toString())).getRepository().getBranch());
+                            directory.setLocalBranches(getLocalBranches(directory));
+                            directory.setRemoteBranches(getRemoteBranches(directory));
                         } catch (IOException e) {
                             log.error(e.getMessage());
                         }
